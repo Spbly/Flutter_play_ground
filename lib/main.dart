@@ -1,41 +1,64 @@
 import 'dart:developer';
-
 import 'package:flutter/material.dart';
-import 'package:play_ground/navBar.dart';
+import 'package:flutter_redux/flutter_redux.dart';
+import 'package:redux/redux.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'components/clickTextCounters.dart';
+import 'services/lifeCycleManager.dart';
+import 'store.dart';
+import 'appState.dart';
 
 void main() {
-  runApp(MyClicker());
+  LifeCycleManager.registerServices();
+  runApp(MyClicker(store: AppStore));
 }
 
 class MyClicker extends StatelessWidget {
+  final Store<AppState> store;
+
+  MyClicker({this.store});
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: HomePage(
-        test: 'test',
-        myData: 'dataBro',
-        myint: 2,
+    return LifeCycleManager(
+        child: StoreProvider(
+      store: store,
+      child: MaterialApp(
+        home: HomePage(),
       ),
-    );
+    ));
   }
 }
 
 class HomePage extends StatefulWidget {
-  HomePage({Key key, this.test, this.myData, this.myint}) : super(key: key);
-  final String test;
-  final String myData;
-  final int myint;
+  HomePage({Key key}) : super(key: key);
 
   @override
   _HomePageState createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  int _intval = 2;
+  int clickCount = 0;
 
-  void _stringIncrement() {
+  void initState() {
+    super.initState();
+    print("Here is the init state");
+    loadCounter();
+  }
+
+  _stringIncrement() async {
+    SharedPreferences _prefs = await SharedPreferences.getInstance();
     setState(() {
-      _intval++;
+      clickCount = (_prefs.getInt('counter') ?? 0) + 1;
+      _prefs.setInt('counter', clickCount);
+    });
+  }
+
+  loadCounter() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      clickCount = (prefs.getInt('counter') ?? 0);
+      print(clickCount);
     });
   }
 
@@ -70,12 +93,12 @@ class _HomePageState extends State<HomePage> {
       body: new GestureDetector(
           onTap: () {
             setState(() {
-              _intval++;
+              _stringIncrement();
               log("Container clicked");
             });
           },
           child: new Container(
-            color: Colors.green,
+            color: Colors.lightBlue,
             child: new Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
@@ -90,7 +113,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     Center(
                       child: Text(
-                        '$_intval',
+                        '$clickCount',
                         style: TextStyle(height: 1.5, fontSize: 40),
                       ),
                     )
@@ -107,10 +130,13 @@ class _HomePageState extends State<HomePage> {
                     ),
                     Center(
                       child: Text(
-                        '$_intval',
+                        '$clickCount',
                         style: TextStyle(height: 1.5, fontSize: 40),
                       ),
-                    )
+                    ),
+                    Center(
+                      child: ClickTextCounter(),
+                    ),
                   ],
                 ),
               ],
